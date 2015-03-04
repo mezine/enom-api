@@ -15,11 +15,26 @@ module EnomAPI
         xml = xml.GetDomainInfo
 
         nameservers = []
+        raasettings = {}
+
         xml.services.entry do |entry,_|
-          next unless entry['name'] == 'dnsserver'
-          entry.configuration.dns do |dns,_|
-            name = dns.to_s
-            nameservers << dns.to_s unless name == ""
+          case entry['name']
+
+          when 'dnsserver'
+            entry.configuration.dns do |dns,_|
+              name = dns.to_s
+              nameservers << dns.to_s unless name == ""
+            end
+
+          when 'raasettings'
+            raasetting = entry.raasetting
+            raasettings = {
+              :first_name => raasetting.fname,
+              :last_name => raasetting.lname,
+              :email => raasetting.emailaddress,
+              :verification_status => raasetting.verificationstatus,
+              :pending_suspension => raasetting.pendingsuspension
+            }
           end
         end
 
@@ -34,9 +49,12 @@ module EnomAPI
           end
         end
 
-        { :expires => expires,
+        {
+          :expires => expires,
           :status => xml.status.registrationstatus.strip,
-          :nameservers => nameservers }
+          :nameservers => nameservers,
+          :raasettings => raasettings
+        }
       end
 
       # Get the registration status of a domain. Used for TLDs which
@@ -125,6 +143,32 @@ module EnomAPI
             return { :known => true, :in_account => false }
           end
         end
+      end
+
+      # Adding a function to request some additional options for names based on
+      # the provided domain name
+      # @param [String] The domain name to for options for
+      # @return [Array] Array of hashes containing the name and whether .com or
+      #   .net are available
+      def name_spinner(domain)
+        xml = send_recv(:NameSpinner, split_domain(domain).merge({
+          :UseHyphens => true
+        }))
+
+        domains = Array.new
+        xml.namespin do
+          xml.domains do
+            xml.domain do
+              domains << {
+                :name => xml['name'],
+                :com => xml['com'] == 'y',
+                :net => xml['net'] == 'y'
+              } if xml['com'] == 'y' || xml['net'] == 'y'
+            end
+          end
+        end
+
+        domains
       end
     end
   end

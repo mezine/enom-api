@@ -11,7 +11,8 @@ module EnomAPI
       # @param [Registrant] registrant Registrant of the domain
       # @param [Array<String>, nil] nameservers Nameservers to set for the domain, nil sends blank NS1
       # @param [Hash] options Options to configure the registration
-      # @option options [Integer] :period Number of years to register the domain for
+      # @option options [Integer] :Period Number of years to register the domain for
+      # @option options [Integer] :RenewName 1 to automatically renew, 0 if otherwise
       # @return [Hash] :result => :registered and :order_id if successful
       # @return [Hash] :result => :ordered and :order_id if not a Real Time TLD
       # @raise [RuntimeError] if more than 12 nameservers are passed
@@ -19,7 +20,8 @@ module EnomAPI
       def purchase(domain, registrant, nameservers, options = {})
         raise "Maximum nameserver limit is 12" if !nameservers.nil? && nameservers.size > 12
         opts = registrant.to_post_data('Registrant')
-        opts[:NumYears] = options.delete(:period) if options.has_key?(:period)
+        opts[:NumYears] = options.delete(:Period) if options.has_key?(:Period)
+        opts[:RenewName] = options.delete(:RenewName) if options.has_key?(:RenewName)
 
         xml = send_recv(:Purchase, split_domain(domain).merge(opts)) do |d|
           if nameservers.nil? || nameservers.empty?
@@ -39,6 +41,32 @@ module EnomAPI
           return { :result => :ordered, :order_id => xml.OrderID }
         end
       end
+
+      # Purchases an addon service for a domain name
+      # Currently only ID Protect (WPPS) is supported
+      #
+      # @param [String] domain Domain name to puchase a service for
+      # @param [String] sevice The service type to purchase (currently only WPPS is supported)
+      # @param [Hash] options Options to configure the service
+      # @param options [Integer] :Period Number of years to register the domain for
+      # @param options [Integer] :RenewName 1 to automatically renew, 0 if otherwise
+      # @return [Boolean] True if successful
+      def purchase_service(domain, service, options = {})
+        raise "The specified service '#{service}' is not supported" unless service == 'WPPS'
+
+        # Set some default options
+        opts = {
+          :Service => service
+        }
+
+        # Add any additional parameters, as needed
+        opts[:NumYears] = options.delete(:Period) if options.has_key?(:Period)
+        opts[:RenewName] = options.delete(:RenewName) if options.has_key?(:RenewName)
+
+        xml = send_recv(:PurchaseServices, split_domain(domain).merge(opts))
+        xml.Success?
+      end
+
 
       # Deletes a domain registration.
       #
@@ -110,6 +138,21 @@ module EnomAPI
           end
         end
         attrs
+      end
+
+      # Set host records for a particular domain
+      # @param [String] The domain name to set options for
+      # @param [Hash] Array of Host Name, Record Type, Address values; e.g.
+      # { :HostName1 => 'www', :RecordType1 => 'CNAME', :Address1 => 'app.herokuapp.com' }
+      def set_hosts(domain, hosts)
+        xml = send_recv(:SetHosts, split_domain(domain).merge(hosts))
+        xml.Success?
+      end
+
+      # Resends the RAA notification for the given domain name
+      def raa_resendnotification(domain)
+        xml = send_recv(:RAA_ResendNotification, { :DomainName => domain })
+        xml.Success?
       end
       
     end

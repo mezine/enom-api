@@ -100,6 +100,17 @@ module EnomAPI
         return false unless xml.Status?
         xml.OrderID
       end
+
+      # Set whether this domain should continue to renew past its expiry date
+      # @param [String] The domain name to set the renew option for
+      # @param [Integer] 1 to auto-renew, 0 otherwise
+      def set_renew(domain, renew)
+        raise ArgumentError, "invalid renew type - `#{renew}' (must be 1 or 0)" unless renew.is_a?(Integer) && [0, 1].include?(renew)
+        xml = send_recv(:SetRenew, split_domain(domain).merge({
+          :RenewFlag => renew
+        }))
+        xml.Success?
+      end
     end
   end
 end
