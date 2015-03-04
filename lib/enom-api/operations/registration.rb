@@ -17,13 +17,13 @@ module EnomAPI
       # @raise [RuntimeError] if more than 12 nameservers are passed
       # @raise [ResponseError] if regisration failed
       def purchase(domain, registrant, nameservers, options = {})
-        raise "Maximum nameserver limit is 12" if nameservers.size > 12
+        raise "Maximum nameserver limit is 12" if !nameservers.nil? && nameservers.size > 12
         opts = registrant.to_post_data('Registrant')
         opts[:NumYears] = options.delete(:period) if options.has_key?(:period)
 
         xml = send_recv(:Purchase, split_domain(domain).merge(opts)) do |d|
           if nameservers.nil? || nameservers.empty?
-            d['NS1'] = ''
+            d['UseDNS'] = 'default'
           else
             nameservers.each_with_index do |n,i|
               d["NS#{i+1}"] = n
