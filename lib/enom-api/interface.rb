@@ -17,9 +17,10 @@ module EnomAPI
     # @param [String] user eNom Account Login ID
     # @param [String] passwd eNom Account Password
     # @param [String] server Server to connect to
-    def initialize(user, passwd, server = 'reseller.enom.com')
+    def initialize(user, passwd, server = 'reseller.enom.com', proxy = '')
       @user, @passwd = user, passwd
       @uri = URI.parse('https://%s/interface.asp' % server)
+      @proxy = URI.parse(proxy)
     end
 
     # @yield [q] Search query block
@@ -50,7 +51,7 @@ module EnomAPI
       # @return [String] XML Body of the response
       def send_request(data, attempts = 3)
         begin
-          s_client = Net::HTTP.new(@uri.host, @uri.port)
+          s_client = Net::HTTP.new(@uri.host, @uri.port, @proxy.host, @proxy.port, @proxy.user, @proxy.password)
           s_client.use_ssl = true
           s_client.verify_mode = OpenSSL::SSL::VERIFY_NONE
 

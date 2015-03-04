@@ -18,9 +18,9 @@ module EnomAPI
     # @param [String] user eNom Account ID
     # @param [String] passwd eNom Account Password
     # @param [String] server Server to connect to. Use 'resellertest.enom.com' for test.
-    def initialize(user, passwd, server = 'reseller.enom.com')
+    def initialize(user, passwd, server = 'reseller.enom.com', proxy = '')
       @user, @server = user, server
-      @conn = Interface.new(user, passwd, server)
+      @conn = Interface.new(user, passwd, server, proxy)
     end
     def inspect # :nodoc:
       "#<#{self.class} #{@user}@#{@server}>"
