@@ -34,7 +34,7 @@ module EnomAPI
               :email => raasetting.emailaddress,
               :verification_status => raasetting.verificationstatus,
               :pending_suspension => raasetting.pendingsuspension
-            }
+            } unless raasetting.nil?
           end
         end
 
